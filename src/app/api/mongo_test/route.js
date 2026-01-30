@@ -1,5 +1,5 @@
-import corsHeaders from "../../lib/cors";
-import { getClientPromise } from "../../lib/mongodb";
+import corsHeaders from "../../../lib/cors";
+import { getClientPromise } from "../../../lib/mongodb";
 import { NextResponse } from "next/server";
 
 export async function GET() {
