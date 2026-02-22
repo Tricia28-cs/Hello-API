@@ -8,10 +8,6 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const challenge = searchParams.get("pass") ?? false;
 
-  //query for configuration or installation state
-  //check if already install or initialized
-  //if already initialized, shall return error
-
   if (!challenge) {
     return NextResponse.json({
       message: "Invalid usage"

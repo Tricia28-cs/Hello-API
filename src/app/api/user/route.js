@@ -10,9 +10,6 @@ export async function OPTIONS(req) {
   });
 }
 
-// GET /api/user?page=1&limit=10
-// Returns: { page, limit, totalItems, totalPages, users: [...] }
-// Note: password is NOT returned.
 export async function GET(req) {
   const headers = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -64,13 +61,12 @@ export async function GET(req) {
 // POST /api/user
 // Body: { username, email, password, firstname?, lastname?, status? }
 export async function POST (req) {
-
   const data = await req.json();
-  const username = String(data.username ?? "").trim();
-  const email = String(data.email ?? "").trim();
-  const password = String(data.password ?? "");
-  const firstname = data.firstname ?? null;
-  const lastname = data.lastname ?? null;
+  const username = data.username;
+  const email = data.email;
+  const password = data.password;
+  const firstname = data.firstname;
+  const lastname = data.lastname;
   const status = String(data.status ?? "ACTIVE").trim();
 
   
@@ -85,6 +81,7 @@ export async function POST (req) {
 
   try {
     const client = await getClientPromise();
+
     const db = client.db(process.env.DB_NAME);
     const result = await db.collection("user").insertOne({
       username: username,
@@ -103,13 +100,14 @@ export async function POST (req) {
     });
   }
   catch (exception) {
+    console.log("exception", exception.toString());
     const errorMsg = exception.toString();
     let displayErrorMsg = "";
-    if (errorMsg.toLowerCase().includes("duplicate")) {
-      if (errorMsg.toLowerCase().includes("username")) {
+    if (errorMsg.includes("duplicate")) {
+      if (errorMsg.includes("username")) {
         displayErrorMsg = "Duplicate Username!!"
       }
-      else if (errorMsg.toLowerCase().includes("email")) {
+      else if (errorMsg.includes("email")) {
         displayErrorMsg = "Duplicate Email!!"
       }
       else {
