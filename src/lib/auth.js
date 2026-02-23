@@ -1,16 +1,24 @@
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 import cookie from "cookie";
 
-const JWT_SECRET = process.env.JWT_SECRET || "mydefaultjwtsecret";
+const JWT_SECRET = process.env.JWT_SECRET || "myjwtsecret"; // Use a strong secret in production
 
 export function verifyJWT(req) {
   try {
-    const cookieHeader = req.headers.get("cookie") || "";
-    const { token } = cookie.parse(cookieHeader);
-    if (!token) return null;
-    return jwt.verify(token, JWT_SECRET);
+    const cookies = req.headers.get("cookie") || "";
+    const { token } = cookie.parse(cookies);
+    if (!token) {
+      return null;
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
   } catch (err) {
-    console.error("JWT verification error:", err);
     return null;
   }
 }
+
+// Example usage in an API route:
+// import { verifyJWT } from "@/lib/auth";
+// const user = verifyJWT(req);
+// if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

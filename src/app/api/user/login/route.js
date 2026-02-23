@@ -1,75 +1,81 @@
 import corsHeaders from "@/lib/cors";
 import { getClientPromise } from "@/lib/mongodb";
-import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "myjwtsecret";
 
-export async function OPTIONS() {
-  return new Response(null, { status: 200, headers: corsHeaders });
+export async function OPTIONS(req) {
+  return new Response(null, { 
+    status: 200, 
+    headers: corsHeaders 
+  });
 }
 
-// POST /api/user/login
-// Body: { email, password }
 export async function POST(req) {
+  const data = await req.json();
+  const { email, password } = data;
+
+  if (!email || !password) {
+    return NextResponse.json({
+      message: "Missing email or password"
+    }, {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
   try {
-    const data = await req.json();
-    const email = String(data.email ?? "").trim();
-    const password = String(data.password ?? "");
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { message: "Missing email or password" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
     const client = await getClientPromise();
-    const db = client.db(process.env.DB_NAME);
 
+    const db = client.db("wad-01");
     const user = await db.collection("user").findOne({ email });
     if (!user) {
-      return NextResponse.json(
-        { message: "Invalid credentials" },
-        { status: 401, headers: corsHeaders }
-      );
+      return NextResponse.json({
+        message: "Invalid email or password"
+      }, {
+        status: 401,
+        headers: corsHeaders
+      });
     }
-
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
-      return NextResponse.json(
-        { message: "Invalid credentials" },
-        { status: 401, headers: corsHeaders }
-      );
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return NextResponse.json({
+        message: "Invalid email or password"
+      }, {
+        status: 401,
+        headers: corsHeaders
+      });
     }
+    // Generate JWT
+    const token = jwt.sign({
+      id: user._id,
+      email: user.email,
+      username: user.username
+    }, JWT_SECRET, { expiresIn: "60d" });
 
-    const token = jwt.sign(
-      { email: user.email, id: user._id?.toString?.() ?? String(user._id) },
-      JWT_SECRET,
-      { expiresIn: "2h" }
-    );
-
-    const res = NextResponse.json(
-      { message: "OK" },
-      { status: 200, headers: corsHeaders }
-    );
-
-    // HttpOnly cookie so frontend JS can’t steal it
-    res.cookies.set("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false, // set true if using https
-      path: "/",
-      maxAge: 60 * 60 * 2,
+    // Set JWT as HTTP-only cookie
+    const response = NextResponse.json({
+      message: "Login successful"
+      }, {
+        status: 200,
+        headers: corsHeaders
+      });
+      response.cookies.set("token", token, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 60, // 60 days
+        secure: process.env.NODE_ENV === "production"
     });
-
-    return res;
-  } catch (err) {
-    console.log("Login error:", err?.toString?.() ?? err);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500, headers: corsHeaders }
-    );
+    return response;
+  } catch (exception) {
+    console.log("exception", exception.toString());
+    return NextResponse.json({
+      message: "Internal server error"
+    }, {
+      status: 500,
+      headers: corsHeaders
+    });
   }
 }

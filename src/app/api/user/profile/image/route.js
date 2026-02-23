@@ -24,8 +24,6 @@ async function parseMultipartFormData(req) {
   return formData;
 }
 
-// POST /api/user/profile/image
-// multipart/form-data with field "file"
 export async function POST(req) {
   const user = verifyJWT(req);
   if (!user) {
@@ -56,7 +54,7 @@ export async function POST(req) {
 
   // Check if file is an image
   const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-  if (!allowedTypes.has(file.type)) {
+  if (!allowedTypes.includes(file.type)) {
     return NextResponse.json(
       { message: "Only image files allowed" },
       { status: 400, headers: corsHeaders }

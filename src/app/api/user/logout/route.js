@@ -2,24 +2,26 @@ import corsHeaders from "@/lib/cors";
 import { NextResponse } from "next/server";
 
 export async function OPTIONS() {
-  return new Response(null, { status: 200, headers: corsHeaders });
+  return new Response(null, { 
+    status: 200, 
+    headers: corsHeaders 
+  });
 }
 
-// POST /api/user/logout
 export async function POST() {
-  const res = NextResponse.json(
-    { message: "OK" },
-    { status: 200, headers: corsHeaders }
-  );
-
-  // Clear cookie
-  res.cookies.set("token", "", {
+  // Clear the JWT cookie by setting it to empty and expired
+  const response = NextResponse.json({
+    message: "Logout successful"
+  }, {
+    status: 200,
+    headers: corsHeaders
+  });
+  response.cookies.set("token", "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
     path: "/",
     maxAge: 0,
+    secure: process.env.NODE_ENV === "production"
   });
-
-  return res;
+  return response;
 }
